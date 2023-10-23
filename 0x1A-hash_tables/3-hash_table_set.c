@@ -1,97 +1,54 @@
 #include "hash_tables.h"
 
 /**
- * hash_table_set - adds an element to the table
- * @ht: pointer to the hash table
- * @key: node key
- * @value: node value
+ * hash_table_set - Add or update an element in a hash table.
+ * @ht: A pointer to the hash table.
+ * @key: The key to add - cannot be an empty string.
+ * @value: The value associated with key.
  *
- * Return: 1 if it succeeded, 0 otherwise
+ * Return: Upon failure - 0.
+ *         Otherwise - 1.
  */
 
 int hash_table_set(hash_table_t *ht, const char *key, const char *value)
 {
-	unsigned long int index;
-	hash_node_t *node;
+	hash_node_t *new;
+	char *value_copy;
+	unsigned long int index, i;
 
-	if (!ht || !key)
-	{
-	return (0);
-	}
+	if (ht == NULL || key == NULL || *key == '\0' || value == NULL)
+		return (0);
+
+	value_copy = strdup(value);
+	if (value_copy == NULL)
+		return (0);
 
 	index = key_index((const unsigned char *)key, ht->size);
-	node = ht->array[index];
-
-	if (update_node_value(node, key, value))
+	for (i = index; ht->array[i]; i++)
 	{
-		return (1);
-	}
-
-	node = create_new_node(key, value);
-	if (!node)
-	{
-		return (0);
-	}
-
-	node->next = ht->array[index];
-	ht->array[index] = node;
-
-	return (1);
-}
-
-/**
- * update_node_value - updates the value of a node if the key matches
- * @node: pointer to the node in the hash table
- * @key: key to be matched
- * @value: new value to be set
- *
- * Return: 1 if the value is updated, 0 otherwise
- */
-
-int update_node_value(hash_node_t *node, const char *key, const char *value)
-{
-	while (node)
-	{
-		if (strcmp(node->key, key) == 0)
+		if (strcmp(ht->array[i]->key, key) == 0)
 		{
-			free(node->value);
-			node->value = strdup(value);
+			free(ht->array[i]->value);
+			ht->array[i]->value = value_copy;
 			return (1);
 		}
-
-		node = node->next;
 	}
 
-	return (0);
-}
-
-/**
- * create_new_node - creates a new hash table node with the given key and value
- * @key: key for the new node
- * @value: value for the new node
- *
- * Return: pointer to the new node, NULL if memory allocation fails
- */
-
-hash_node_t *create_new_node(const char *key, const char *value)
-{
-	hash_node_t *node = malloc(sizeof(hash_node_t));
-
-	if (!node)
+	new = malloc(sizeof(hash_node_t));
+	if (new == NULL)
 	{
-		return (NULL);
+		free(value_copy);
+		return (0);
 	}
-
-	node->key = strdup(key);
-	node->value = strdup(value);
-
-	if (!node->key || !node->value)
+	new->key = strdup(key);
+	if (new->key == NULL)
 	{
-		free(node->key);
-		free(node->value);
-		free(node);
-		return (NULL);
+		free(new);
+		return (0);
 	}
+	new->value = value_copy;
+	new->next = ht->array[index];
+	ht->array[index] = new;
 
-	return (node);
+	return (1);
 }
